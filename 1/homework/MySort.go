@@ -94,9 +94,9 @@ func reverseStrings(lines []string) {
 
 func LinesCorrection(lines []string) []string {
 
-	if lines[len(lines)-1] == "" {
-		lines = lines[:len(lines)-1]
-	}
+	// if lines[len(lines)-1] == "" {
+	// 	lines = lines[:len(lines)-1]
+	// }
 
 	spacesOnSide := regexp.MustCompile(`^[\s\p{Zs}]+|[\s\p{Zs}]+$`)
 	spacesInLine := regexp.MustCompile(`[\s\p{Zs}]{2,}`)
@@ -104,6 +104,11 @@ func LinesCorrection(lines []string) []string {
 	for i := 0; i < len(lines); i++ {
 		lines[i] = spacesOnSide.ReplaceAllString(lines[i], "")
 		lines[i] = spacesInLine.ReplaceAllString(lines[i], " ")
+
+		if lines[i] == "" {
+			lines = append(lines[:i], lines[i+1:]...)
+			i = i - 1
+		}
 	}
 	return lines
 }
