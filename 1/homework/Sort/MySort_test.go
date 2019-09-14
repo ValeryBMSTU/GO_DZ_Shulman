@@ -696,7 +696,7 @@ func TestSortData2(t *testing.T) {
 }
 
 func TestSort1(t *testing.T) {
-	args := []string{"data.txt", "-o", "null.txt"}
+	args := []string{"testInput.txt", "-o", "null.txt"}
 
 	linesOK := []string{"Apple perametr int pp 26",
 		"BOOK perametr int pp 24",

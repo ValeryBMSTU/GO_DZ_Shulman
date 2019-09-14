@@ -27,7 +27,11 @@ func ChoiseOperType(operator string, prevOperType *int) error {
 	return nil
 }
 
-func calcOperands(operatorsStack []string, operandsStack []float64) ([]string, []float64, error) {
+func CalcOperands(operatorsStack []string, operandsStack []float64) ([]string, []float64, error) {
+
+	if len(operandsStack) < 2 {
+		return operatorsStack, operandsStack, errors.New("Count of operands is too low")
+	}
 
 	operator := operatorsStack[len(operatorsStack)-1]
 	operand1 := operandsStack[len(operandsStack)-2]
@@ -68,7 +72,7 @@ func AddOperator(oper string, operatorsStack []string, operandsStack []float64, 
 		operatorsStack = append(operatorsStack, oper)
 		*prevOperType = *curentOperType + 1
 	case "2": // Произвести над 2 операндами операцию из стека
-		if operatorsStack, operandsStack, err = calcOperands(operatorsStack, operandsStack); err != nil {
+		if operatorsStack, operandsStack, err = CalcOperands(operatorsStack, operandsStack); err != nil {
 			return operatorsStack, operandsStack, err
 		}
 		operatorsStack = append(operatorsStack, oper)
@@ -89,7 +93,7 @@ func AddOperator(oper string, operatorsStack []string, operandsStack []float64, 
 			*prevOperType = 0
 		}
 	case "4": // Произвести над 2 операндами операцию из стека и повторить с тем же входным операндом
-		if operatorsStack, operandsStack, err = calcOperands(operatorsStack, operandsStack); err != nil {
+		if operatorsStack, operandsStack, err = CalcOperands(operatorsStack, operandsStack); err != nil {
 			return operatorsStack, operandsStack, err
 		}
 		if len(operatorsStack) > 0 {
@@ -110,12 +114,9 @@ func AddOperator(oper string, operatorsStack []string, operandsStack []float64, 
 	return operatorsStack, operandsStack, nil
 }
 
-func ExpCorrection(expression *string) error {
-
+func ExpCorrection(expression *string) {
 	spaces := regexp.MustCompile(`[\s\p{Zs}]{1,}`)
 	*expression = spaces.ReplaceAllString(*expression, "")
-
-	return nil
 }
 
 func Calc(expression string) (float64, error) {
@@ -126,9 +127,8 @@ func Calc(expression string) (float64, error) {
 		err := errors.New("Expression is empty")
 		return 0.0, err
 	}
-	if err := ExpCorrection(&expression); err != nil {
-		return 0.0, err
-	}
+
+	ExpCorrection(&expression)
 
 	isOperFlag := false
 	prevOperType := 0
@@ -154,7 +154,7 @@ func Calc(expression string) (float64, error) {
 
 				if operatorsStack, operandsStack, err = AddOperator(string(symbol), operatorsStack, operandsStack,
 					&curentOperType, &prevOperType); err != nil {
-					return 0.0, nil
+					return 0.0, err
 				}
 
 				break
@@ -165,7 +165,7 @@ func Calc(expression string) (float64, error) {
 
 			if _, err := strconv.Atoi(string(symbol)); err != nil {
 				if string(symbol) != "." {
-					return 0.0, nil
+					return 0.0, err
 				} else {
 					curentNumber += string(symbol)
 				}
@@ -188,7 +188,7 @@ func Calc(expression string) (float64, error) {
 		curentOperType = 6
 		if operatorsStack, operandsStack, err = AddOperator("<-", operatorsStack, operandsStack,
 			&curentOperType, &prevOperType); err != nil {
-			return 0.0, nil
+			return 0.0, err
 		}
 	}
 
