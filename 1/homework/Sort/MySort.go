@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"regexp"
@@ -127,16 +126,31 @@ func GetLines(data *Data, dataFile string) error {
 
 	var err error
 
-	if text, err := ioutil.ReadFile(dataFile); err != nil {
+	file, err := os.OpenFile(dataFile, os.O_RDONLY, 0600)
+	if err != nil {
 		return err
-	} else {
-		data.Lines = strings.Split(string(text), "\n")
-
-		if data.Lines[len(data.Lines)-1] == "" {
-			data.Lines = data.Lines[:len(data.Lines)-1]
-		}
-		data.Lines = LinesCorrection(data.Lines)
 	}
+
+	buf := make([]byte, 64*1024)
+	var text string
+
+	n, err := file.Read(buf)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < n; i++ {
+		text = text + string(buf[i])
+	}
+
+	data.Lines = strings.Split(string(text), "\n")
+
+	if data.Lines[len(data.Lines)-1] == "" {
+		data.Lines = data.Lines[:len(data.Lines)-1]
+	}
+
+	data.Lines = LinesCorrection(data.Lines)
+
 	return err
 }
 
