@@ -9,8 +9,58 @@ import (
 	"strings"
 )
 
+var (
+	operators = []string{"+", "-", "/", "*", "(", ")"}
+	spaces    = regexp.MustCompile(`[\s\p{Zs}]{1,}`)
+)
+
+func checkChapterOfDigit(symbol string, curentNumber string) (string, error) {
+	if _, err := strconv.Atoi(string(symbol)); err != nil {
+		if string(symbol) != "." {
+			return curentNumber, err
+		} else {
+			curentNumber += string(symbol)
+		}
+	} else {
+		curentNumber += string(symbol)
+	}
+	return curentNumber, nil
+}
+
+func checkIsOper(curentNumber *string,
+	symbol string,
+	operatorsStack []string,
+	operandsStack []float64,
+	curentOperType *int,
+	prevOperType *int,
+) ([]string, []float64, bool, error) {
+	var isOperFlag bool
+	var err error
+
+	for index, oper := range operators {
+		if oper == symbol {
+
+			if *curentNumber != "" {
+				floatNumber, _ := strconv.ParseFloat(strings.TrimSpace(*curentNumber), 64)
+				operandsStack = append(operandsStack, floatNumber)
+				*curentNumber = ""
+			}
+
+			*curentOperType = index
+			isOperFlag = true
+
+			if operatorsStack, operandsStack, err = AddOperator(symbol, operatorsStack, operandsStack,
+				curentOperType, prevOperType); err != nil {
+				return operatorsStack, operandsStack, isOperFlag, err
+			}
+
+			break
+		}
+	}
+	return operatorsStack, operandsStack, isOperFlag, nil
+}
+
 func ChoiseOperType(operator string, prevOperType *int) error {
-	operators := [...]string{"+", "-", "/", "*", "("}
 	newPrevOperType := 0
 	for index, oper := range operators {
 		if oper == operator {
@@ -21,9 +71,12 @@ func ChoiseOperType(operator string, prevOperType *int) error {
 	if newPrevOperType == 0 {
 		err := errors.New("Unknown operator")
 		return err
-	} else {
-		*prevOperType = newPrevOperType
 	}
+	if newPrevOperType == 6 {
+		err := errors.New("')' can not be in stack.")
+		return err
+	}
+	*prevOperType = newPrevOperType
 	return nil
 }
 
@@ -55,8 +108,14 @@ func CalcOperands(operatorsStack []string, operandsStack []float64) ([]string, [
 	return operatorsStack, operandsStack, nil
 }
 
-func AddOperator(oper string, operatorsStack []string, operandsStack []float64, curentOperType *int, prevOperType *int) ([]string, []float64, error) {
-	var err error = nil
+func AddOperator(oper string,
+	operatorsStack []string,
+	operandsStack []float64,
+	curentOperType *int,
+	prevOperType *int,
+) ([]string, []float64, error) {
+
+	var err error
 	oper_table := [6][7]string{
 		/*		  +    -    /	 *	  (	   )	<-	*/
 		/*	->*/ {"1", "1", "1", "1", "1", "?", "X"},
@@ -114,65 +173,38 @@ func AddOperator(oper string, operatorsStack []string, operandsStack []float64, 
 	return operatorsStack, operandsStack, nil
 }
 
-func ExpCorrection(expression *string) {
-	spaces := regexp.MustCompile(`[\s\p{Zs}]{1,}`)
-	*expression = spaces.ReplaceAllString(*expression, "")
+func ExpCorrection(expression string) string {
+	return spaces.ReplaceAllString(expression, "")
 }
 
 func Calc(expression string) (float64, error) {
 
-	var err error = nil
+	var err error
 
 	if expression == "" {
-		err := errors.New("Expression is empty")
-		return 0.0, err
+		return 0, errors.New("Expression is empty")
 	}
 
-	ExpCorrection(&expression)
+	expression = ExpCorrection(expression)
 
 	isOperFlag := false
 	prevOperType := 0
 	curentOperType := 0
-	operators := [...]string{"+", "-", "/", "*", "(", ")"}
 	operatorsStack := []string{}
 	operandsStack := []float64{}
 	curentNumber := ""
 
 	for _, symbol := range expression {
 
-		for index, oper := range operators {
-			if oper == string(symbol) {
-
-				if curentNumber != "" {
-					floatNumber, _ := strconv.ParseFloat(strings.TrimSpace(curentNumber), 64)
-					operandsStack = append(operandsStack, floatNumber)
-					curentNumber = ""
-				}
-
-				curentOperType = index
-				isOperFlag = true
-
-				if operatorsStack, operandsStack, err = AddOperator(string(symbol), operatorsStack, operandsStack,
-					&curentOperType, &prevOperType); err != nil {
-					return 0.0, err
-				}
-
-				break
-			}
+		if operatorsStack, operandsStack, isOperFlag, err = checkIsOper(&curentNumber, string(symbol), operatorsStack, operandsStack,
+			&curentOperType, &prevOperType); err != nil {
+			return 0, err
 		}
 
 		if isOperFlag != true {
-
-			if _, err := strconv.Atoi(string(symbol)); err != nil {
-				if string(symbol) != "." {
-					return 0.0, err
-				} else {
-					curentNumber += string(symbol)
-				}
-			} else {
-				curentNumber += string(symbol)
+			if curentNumber, err = checkChapterOfDigit(string(symbol), curentNumber); err != nil {
+				return 0, err
 			}
-
 		} else {
 			isOperFlag = false
 		}
