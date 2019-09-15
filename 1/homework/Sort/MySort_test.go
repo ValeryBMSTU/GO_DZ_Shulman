@@ -1,255 +1,12 @@
 package main
 
 import (
+	"os"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
-
-// var tstArgs1 = []string["data.txt", "-r", "-f", "-u", "-o", "blabla.txt"]
-// var testText1 = `blabla
-// colmondo
-// migren
-// aloha
-// 1234
-// `
-
-/*
-	For ReadArgs tests.
-*/
-
-func TestReadArgs1(t *testing.T) {
-	var outFile string
-	var dataFile string
-	var colNumb int
-	var flags flagsMap = map[string]bool{
-		"-f": false, // Игнорирвоать регистр букв
-		"-u": false, // Выводить только первое среди нескольких равных
-		"-r": false, // Сортировка по убыванию
-		"-n": false, // Сортировка чисел
-		"-k": false, // Сортировать по столбцу
-		"-o": false, // Вывод в файл
-	}
-
-	outFileOK := ""
-	dataFileOK := "data.txt"
-	colNumbOK := 0
-	var flagsOK flagsMap = map[string]bool{
-		"-f": false, // Игнорирвоать регистр букв
-		"-u": false, // Выводить только первое среди нескольких равных
-		"-r": false, // Сортировка по убыванию
-		"-n": false, // Сортировка чисел
-		"-k": false, // Сортировать по столбцу
-		"-o": false, // Вывод в файл
-	}
-
-	args := []string{"data.txt"}
-
-	err := ReadArgs(flags, args, &outFile, &dataFile, &colNumb)
-	if err != nil {
-		t.Errorf("Test ReadArgs1 failed: %s", err)
-	}
-
-	var resultOK bool
-
-	if outFile != outFileOK || dataFile != dataFileOK || colNumb != colNumbOK {
-		resultOK = false
-	} else {
-		if reflect.DeepEqual(flags, flagsOK) {
-			resultOK = true
-		} else {
-			resultOK = false
-		}
-	}
-	if resultOK != true {
-		t.Errorf("Test ReadArgs1 failed, result not match")
-	}
-}
-
-func TestReadArgs2(t *testing.T) {
-	var outFile string
-	var dataFile string
-	var colNumb int
-	var flags flagsMap = map[string]bool{
-		"-f": false, // Игнорирвоать регистр букв
-		"-u": false, // Выводить только первое среди нескольких равных
-		"-r": false, // Сортировка по убыванию
-		"-n": false, // Сортировка чисел
-		"-k": false, // Сортировать по столбцу
-		"-o": false, // Вывод в файл
-	}
-
-	outFileOK := "blabla.txt"
-	dataFileOK := "data.txt"
-	colNumbOK := 0
-	var flagsOK flagsMap = map[string]bool{
-		"-f": true,  // Игнорирвоать регистр букв
-		"-u": true,  // Выводить только первое среди нескольких равных
-		"-r": true,  // Сортировка по убыванию
-		"-n": false, // Сортировка чисел
-		"-k": false, // Сортировать по столбцу
-		"-o": true,  // Вывод в файл
-	}
-
-	args := []string{"data.txt", "-r", "-f", "-u", "-o", "blabla.txt"}
-
-	err := ReadArgs(flags, args, &outFile, &dataFile, &colNumb)
-	if err != nil {
-		t.Errorf("Test ReadArgs1 failed: %s", err)
-	}
-
-	var resultOK bool
-
-	if outFile != outFileOK || dataFile != dataFileOK || colNumb != colNumbOK {
-		resultOK = false
-	} else {
-		if reflect.DeepEqual(flags, flagsOK) {
-			resultOK = true
-		} else {
-			resultOK = false
-		}
-	}
-	if resultOK != true {
-		t.Errorf("Test ReadArgs1 failed, result not match")
-	}
-}
-
-func TestReadArgs3(t *testing.T) {
-	var outFile string
-	var dataFile string
-	var colNumb int
-	var flags flagsMap = map[string]bool{
-		"-f": false, // Игнорирвоать регистр букв
-		"-u": false, // Выводить только первое среди нескольких равных
-		"-r": false, // Сортировка по убыванию
-		"-n": false, // Сортировка чисел
-		"-k": false, // Сортировать по столбцу
-		"-o": false, // Вывод в файл
-	}
-
-	outFileOK := "null.txt"
-	dataFileOK := "data2.txt"
-	colNumbOK := 0
-	var flagsOK flagsMap = map[string]bool{
-		"-f": false, // Игнорирвоать регистр букв
-		"-u": false, // Выводить только первое среди нескольких равных
-		"-r": true,  // Сортировка по убыванию
-		"-n": false, // Сортировка чисел
-		"-k": false, // Сортировать по столбцу
-		"-o": true,  // Вывод в файл
-	}
-
-	args := []string{"data2.txt", "-r", "-r", "-r", "-r", "-o", "null.txt"}
-
-	err := ReadArgs(flags, args, &outFile, &dataFile, &colNumb)
-	if err != nil {
-		t.Errorf("Test ReadArgs1 failed: %s", err)
-	}
-
-	var resultOK bool
-
-	if outFile != outFileOK || dataFile != dataFileOK || colNumb != colNumbOK {
-		resultOK = false
-	} else {
-		if reflect.DeepEqual(flags, flagsOK) {
-			resultOK = true
-		} else {
-			resultOK = false
-		}
-	}
-	if resultOK != true {
-		t.Errorf("Test ReadArgs1 failed, result not match")
-	}
-}
-
-func TestReadArgs4(t *testing.T) {
-	var outFile string
-	var dataFile string
-	var colNumb int
-	var flags flagsMap = map[string]bool{
-		"-f": false, // Игнорирвоать регистр букв
-		"-u": false, // Выводить только первое среди нескольких равных
-		"-r": false, // Сортировка по убыванию
-		"-n": false, // Сортировка чисел
-		"-k": false, // Сортировать по столбцу
-		"-o": false, // Вывод в файл
-	}
-
-	outFileOK := "null.txt"
-	dataFileOK := "data2.txt"
-	colNumbOK := 3
-	var flagsOK flagsMap = map[string]bool{
-		"-f": false, // Игнорирвоать регистр букв
-		"-u": false, // Выводить только первое среди нескольких равных
-		"-r": true,  // Сортировка по убыванию
-		"-n": false, // Сортировка чисел
-		"-k": true,  // Сортировать по столбцу
-		"-o": true,  // Вывод в файл
-	}
-
-	args := []string{"data2.txt", "-r", "-k", "4", "-o", "null.txt"}
-
-	err := ReadArgs(flags, args, &outFile, &dataFile, &colNumb)
-	if err != nil {
-		t.Errorf("Test ReadArgs1 failed: %s", err)
-	}
-
-	var resultOK bool
-
-	if outFile != outFileOK || dataFile != dataFileOK || colNumb != colNumbOK {
-		resultOK = false
-	} else {
-		if reflect.DeepEqual(flags, flagsOK) {
-			resultOK = true
-		} else {
-			resultOK = false
-		}
-	}
-	if resultOK != true {
-		t.Errorf("Test ReadArgs1 failed, result not match")
-	}
-}
-
-func TestReadArgs5(t *testing.T) {
-	var outFile string
-	var dataFile string
-	var colNumb int
-	var flags flagsMap = map[string]bool{
-		"-f": false, // Игнорирвоать регистр букв
-		"-u": false, // Выводить только первое среди нескольких равных
-		"-r": false, // Сортировка по убыванию
-		"-n": false, // Сортировка чисел
-		"-k": false, // Сортировать по столбцу
-		"-o": false, // Вывод в файл
-	}
-
-	args := []string{"data2.txt", "-r", "-n", "-k", "A", "-o", "null.txt"}
-
-	err := ReadArgs(flags, args, &outFile, &dataFile, &colNumb)
-	if err == nil {
-		t.Errorf("Test ReadArgs5 failed: err is nil")
-	}
-}
-
-func TestReadArgs6(t *testing.T) {
-	var outFile string
-	var dataFile string
-	var colNumb int
-	var flags flagsMap = map[string]bool{
-		"-f": false, // Игнорирвоать регистр букв
-		"-u": false, // Выводить только первое среди нескольких равных
-		"-r": false, // Сортировка по убыванию
-		"-n": false, // Сортировка чисел
-		"-k": false, // Сортировать по столбцу
-		"-o": false, // Вывод в файл
-	}
-
-	args := []string{"data2.txt", "data3.txt", "-o", "newFile.txt"}
-
-	err := ReadArgs(flags, args, &outFile, &dataFile, &colNumb)
-	if err == nil {
-		t.Errorf("Test ReadArgs6 failed: err is nil")
-	}
-}
 
 func TestLinesCorrection1(t *testing.T) {
 	var data Data
@@ -268,7 +25,7 @@ func TestLinesCorrection1(t *testing.T) {
 		resultOK = false
 	}
 	if resultOK != true {
-		t.Errorf("Test ReadArgs1 failed, result not match")
+		t.Errorf("Test LinesCorrection1 failed, result not match")
 	}
 }
 
@@ -289,7 +46,7 @@ func TestLinesCorrection2(t *testing.T) {
 		resultOK = false
 	}
 	if resultOK != true {
-		t.Errorf("Test ReadArgs1 failed, result not match")
+		t.Errorf("Test LinesCorrection2 failed, result not match")
 	}
 }
 
@@ -302,14 +59,7 @@ func TestLinesCorrection3(t *testing.T) {
 
 	data.Lines = LinesCorrection(data.Lines)
 
-	if len(data.Lines) != len(dataOK.Lines) {
-		t.Errorf("Test ReadArgs1 failed, result not match")
-	}
-	for i := 0; i < len(data.Lines); i++ {
-		if data.Lines[i] != dataOK.Lines[i] {
-			t.Errorf("Test ReadArgs1 failed, result not match")
-		}
-	}
+	assert.Equal(t, data.Lines, dataOK.Lines, "The two slices should be the same.")
 }
 
 func TestStringSort1(t *testing.T) {
@@ -329,7 +79,7 @@ func TestStringSort1(t *testing.T) {
 		resultOK = false
 	}
 	if resultOK != true {
-		t.Errorf("Test ReadArgs1 failed, result not match")
+		t.Errorf("Test StringSort1 failed, result not match")
 	}
 }
 
@@ -350,7 +100,7 @@ func TestStringSort2(t *testing.T) {
 		resultOK = false
 	}
 	if resultOK != true {
-		t.Errorf("Test ReadArgs1 failed, result not match")
+		t.Errorf("Test StringSort2 failed, result not match")
 	}
 }
 
@@ -371,14 +121,14 @@ func TestStringSort3(t *testing.T) {
 		resultOK = false
 	}
 	if resultOK != true {
-		t.Errorf("Test ReadArgs1 failed, result not match")
+		t.Errorf("Test StringSort3 failed, result not match")
 	}
 }
 
 func TestColSort1(t *testing.T) {
 	var data Data
 	data.Lines = []string{"12 b", "2 k", "6 a", "18 b", "22 c"}
-	col := 0
+	col := 1
 
 	var dataOK Data
 	dataOK.Lines = []string{"12 b", "18 b", "2 k", "22 c", "6 a"}
@@ -392,14 +142,14 @@ func TestColSort1(t *testing.T) {
 		resultOK = false
 	}
 	if resultOK != true {
-		t.Errorf("Test ReadArgs1 failed, result not match")
+		t.Errorf("Test ColSort1 failed, result not match")
 	}
 }
 
 func TestColSort2(t *testing.T) {
 	var data Data
 	data.Lines = []string{"12 b", "2 k", "6 a", "18 b", "22 c"}
-	col := 1
+	col := 2
 
 	var dataOK Data
 	dataOK.Lines = []string{"6 a", "12 b", "18 b", "22 c", "2 k"}
@@ -413,14 +163,14 @@ func TestColSort2(t *testing.T) {
 		resultOK = false
 	}
 	if resultOK != true {
-		t.Errorf("Test ReadArgs1 failed, result not match")
+		t.Errorf("Test ColSort2 failed, result not match")
 	}
 }
 
 func TestColSort3(t *testing.T) {
 	var data Data
 	data.Lines = []string{"12 A", "2 A", "6 a", "18 a", "22 A"}
-	col := 1
+	col := 2
 
 	var dataOK Data
 	dataOK.Lines = []string{"12 A", "2 A", "22 A", "6 a", "18 a"}
@@ -434,14 +184,14 @@ func TestColSort3(t *testing.T) {
 		resultOK = false
 	}
 	if resultOK != true {
-		t.Errorf("Test ReadArgs1 failed, result not match")
+		t.Errorf("Test ColSort3 failed, result not match")
 	}
 }
 
 func TestColSortInt1(t *testing.T) {
 	var data Data
 	data.Lines = []string{"12 A", "2 A", "6 a", "18 a", "22 A"}
-	col := 0
+	col := 1
 
 	var dataOK Data
 	dataOK.Lines = []string{"2 A", "6 a", "12 A", "18 a", "22 A"}
@@ -450,7 +200,7 @@ func TestColSortInt1(t *testing.T) {
 	data.Lines, err = ColSortInt(data.Lines, col, true)
 
 	if err != nil {
-		t.Errorf("Test ReadArgs1 failed: %s", err)
+		t.Errorf("Test ColSortInt1 failed: %s", err)
 	}
 
 	var resultOK bool
@@ -461,14 +211,14 @@ func TestColSortInt1(t *testing.T) {
 		resultOK = false
 	}
 	if resultOK != true {
-		t.Errorf("Test ReadArgs1 failed, result not match")
+		t.Errorf("Test ColSortInt1 failed, result not match")
 	}
 }
 
 func TestColSortInt2(t *testing.T) {
 	var data Data
 	data.Lines = []string{"12 A 342234", "2 A 222", "6 a 90", "18 a 2000", "22 A 0"}
-	col := 2
+	col := 3
 
 	var dataOK Data
 	dataOK.Lines = []string{"22 A 0", "6 a 90", "2 A 222", "18 a 2000", "12 A 342234"}
@@ -477,7 +227,7 @@ func TestColSortInt2(t *testing.T) {
 	data.Lines, err = ColSortInt(data.Lines, col, true)
 
 	if err != nil {
-		t.Errorf("Test ReadArgs1 failed: %s", err)
+		t.Errorf("Test ColSortInt2 failed: %s", err)
 	}
 
 	var resultOK bool
@@ -495,7 +245,7 @@ func TestColSortInt2(t *testing.T) {
 func TestColSortInt3(t *testing.T) {
 	var data Data
 	data.Lines = []string{"12 A 1", "2 A 1", "6 a 1", "18 a 1", "22 A 1"}
-	col := 2
+	col := 3
 
 	var dataOK Data
 	dataOK.Lines = []string{"12 A 1", "2 A 1", "6 a 1", "18 a 1", "22 A 1"}
@@ -504,7 +254,7 @@ func TestColSortInt3(t *testing.T) {
 	data.Lines, err = ColSortInt(data.Lines, col, true)
 
 	if err != nil {
-		t.Errorf("Test ReadArgs1 failed: %s", err)
+		t.Errorf("Test ColSortInt3 failed: %s", err)
 	}
 
 	var resultOK bool
@@ -536,7 +286,7 @@ func TestReverseStrings1(t *testing.T) {
 		resultOK = false
 	}
 	if resultOK != true {
-		t.Errorf("Test ReadArgs1 failed, result not match")
+		t.Errorf("Test ReverseStrings1 failed, result not match")
 	}
 }
 
@@ -557,7 +307,7 @@ func TestReverseStrings2(t *testing.T) {
 		resultOK = false
 	}
 	if resultOK != true {
-		t.Errorf("Test ReadArgs1 failed, result not match")
+		t.Errorf("Test ReverseStrings2 failed, result not match")
 	}
 }
 
@@ -578,7 +328,7 @@ func TestReverseStrings3(t *testing.T) {
 		resultOK = false
 	}
 	if resultOK != true {
-		t.Errorf("Test ReadArgs1 failed, result not match")
+		t.Errorf("Test ReverseStrings3 failed, result not match")
 	}
 }
 
@@ -591,14 +341,7 @@ func TestRemoveDublicates1(t *testing.T) {
 
 	data.Lines = RemoveDublicates(data.Lines)
 
-	if len(data.Lines) != len(dataOK.Lines) {
-		t.Errorf("Test ReadArgs1 failed, result not match")
-	}
-	for i := 0; i < len(data.Lines); i++ {
-		if data.Lines[i] != dataOK.Lines[i] {
-			t.Errorf("Test ReadArgs1 failed, result not match")
-		}
-	}
+	assert.Equal(t, data.Lines, dataOK.Lines, "The two slices should be the same.")
 }
 
 func TestRemoveDublicates2(t *testing.T) {
@@ -610,14 +353,7 @@ func TestRemoveDublicates2(t *testing.T) {
 
 	data.Lines = RemoveDublicates(data.Lines)
 
-	if len(data.Lines) != len(dataOK.Lines) {
-		t.Errorf("Test ReadArgs1 failed, result not match")
-	}
-	for i := 0; i < len(data.Lines); i++ {
-		if data.Lines[i] != dataOK.Lines[i] {
-			t.Errorf("Test ReadArgs1 failed, result not match")
-		}
-	}
+	assert.Equal(t, data.Lines, dataOK.Lines, "The two slices should be the same.")
 }
 
 func TestRemoveDublicates3(t *testing.T) {
@@ -629,74 +365,83 @@ func TestRemoveDublicates3(t *testing.T) {
 
 	data.Lines = RemoveDublicates(data.Lines)
 
-	if len(data.Lines) != len(dataOK.Lines) {
-		t.Errorf("Test ReadArgs1 failed, result not match")
-	}
-	for i := 0; i < len(data.Lines); i++ {
-		if data.Lines[i] != dataOK.Lines[i] {
-			t.Errorf("Test ReadArgs1 failed, result not match")
-		}
-	}
+	assert.Equal(t, data.Lines, dataOK.Lines, "The two slices should be the same.")
 }
 
 func TestSortData1(t *testing.T) {
 	var data Data
 	data.Lines = []string{"AAAA 14", "BB 6", "CCC 14", "AA 22", "AAA 19", "AAA 25"}
-	col := 1
-	var flags flagsMap = map[string]bool{
-		"-f": true,  // Игнорирвоать регистр букв
-		"-u": true,  // Выводить только первое среди нескольких равных
-		"-r": false, // Сортировка по убыванию
-		"-n": false, // Сортировка чисел
-		"-k": true,  // Сортировать по столбцу
-		"-o": false, // Вывод в файл
+	flags := Options{
+		caseIgnoreF: false,
+		uniqueF:     false,
+		reverseF:    false,
+		numericF:    false,
+		keyPos:      2,
+		outputFile:  "",
 	}
 
 	var dataOK Data
 	dataOK.Lines = []string{"AAAA 14", "CCC 14", "AAA 19", "AA 22", "AAA 25", "BB 6"}
 
-	data.SortData(col, flags)
+	data.SortData(flags)
 
-	if len(data.Lines) != len(dataOK.Lines) {
-		t.Errorf("Test ReadArgs1 failed, result not match")
-	}
-	for i := 0; i < len(data.Lines); i++ {
-		if data.Lines[i] != dataOK.Lines[i] {
-			t.Errorf("Test ReadArgs1 failed, result not match")
-		}
-	}
+	assert.Equal(t, data.Lines, dataOK.Lines, "The two slices should be the same.")
 }
 
 func TestSortData2(t *testing.T) {
 	var data Data
 	data.Lines = []string{"AAAA 14", "BB 6", "CCC 14", "AA 22", "AAA 19", "AAA 25"}
-	col := 0
-	var flags flagsMap = map[string]bool{
-		"-f": false, // Игнорирвоать регистр букв
-		"-u": false, // Выводить только первое среди нескольких равных
-		"-r": true,  // Сортировка по убыванию
-		"-n": true,  // Сортировка чисел
-		"-k": false, // Сортировать по столбцу
-		"-o": true,  // Вывод в файл
+	flags := Options{
+		caseIgnoreF: false,
+		uniqueF:     false,
+		reverseF:    true,
+		numericF:    false,
+		keyPos:      1,
+		outputFile:  "",
 	}
 
 	var dataOK Data
 	dataOK.Lines = []string{"CCC 14", "BB 6", "AAAA 14", "AAA 25", "AAA 19", "AA 22"}
 
-	data.SortData(col, flags)
+	data.SortData(flags)
 
-	if len(data.Lines) != len(dataOK.Lines) {
-		t.Errorf("Test ReadArgs1 failed, result not match")
+	assert.Equal(t, data.Lines, dataOK.Lines, "The two slices should be the same.")
+}
+
+func TestSortData3(t *testing.T) {
+	var data Data
+	data.Lines = []string{"AAAA 14", "BB 6", "CCC 14", "AA 22", "AAA 19", "AAA 25", "AAA 19"}
+	flags := Options{
+		caseIgnoreF: false,
+		uniqueF:     true,
+		reverseF:    false,
+		numericF:    true,
+		keyPos:      2,
+		outputFile:  "",
 	}
-	for i := 0; i < len(data.Lines); i++ {
-		if data.Lines[i] != dataOK.Lines[i] {
-			t.Errorf("Test ReadArgs1 failed, result not match")
-		}
-	}
+
+	var dataOK Data
+	dataOK.Lines = []string{"BB 6", "AAAA 14", "CCC 14", "AAA 19", "AA 22", "AAA 25"}
+
+	data.SortData(flags)
+
+	assert.Equal(t, data.Lines, dataOK.Lines, "The two slices should be the same.")
 }
 
 func TestSort1(t *testing.T) {
-	args := []string{"testInput.txt", "-o", "null.txt"}
+	var data Data
+	if err := GetLines(&data, "testInput.txt"); err != nil {
+		t.Errorf("Test Sort1 failed: %s", err)
+	}
+
+	flags := Options{
+		caseIgnoreF: false,
+		uniqueF:     false,
+		reverseF:    false,
+		numericF:    false,
+		keyPos:      -1,
+		outputFile:  "",
+	}
 
 	linesOK := []string{"Apple perametr int pp 26",
 		"BOOK perametr int pp 24",
@@ -707,31 +452,16 @@ func TestSort1(t *testing.T) {
 		"January perametr int gg 25",
 		"Napkin perametr int gg 29",
 	}
-	outFileOK := "null.txt"
 
-	lines, outFile, err := Sort(args)
+	lines, err := Sort(data, flags)
 	if err != nil {
-		t.Errorf("Test failed: %s", err)
-	}
-	if outFile != outFileOK {
-		t.Errorf("Test failed, result not match")
+		t.Errorf("Test Sort1 failed: %s", err)
 	}
 
-	if len(lines) != len(linesOK) {
-		t.Errorf("Test ReadArgs1 failed, result not match")
-	}
-	for i := 0; i < len(lines); i++ {
-		if lines[i] != linesOK[i] {
-			t.Errorf("Test ReadArgs1 failed, result not match")
-		}
-	}
+	assert.Equal(t, lines, linesOK, "The two slices should be the same.")
 }
 
-// func TestFail(t *testing.T) {
-// 	in := bytes.NewBufferString(testFailInput)
-// 	out := bytes.NewBuffer(nil)
-// 	err := uniq(in, out)
-// 	if err == nil {
-// 		t.Errorf("Test FAIL failed: expected error")
-// 	}
-// }
+func TestMain1(t *testing.T) {
+	os.Args = []string{os.Args[0], "-o", "testOutput.txt", "testInput.txt"}
+	main()
+}

@@ -1,14 +1,31 @@
 package main
 
 import (
+	"errors"
+	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 )
+
+var (
+	spacesOnSide = regexp.MustCompile(`^[\s\p{Zs}]+|[\s\p{Zs}]+$`)
+	spacesInLine = regexp.MustCompile(`[\s\p{Zs}]{2,}`)
+)
+
+type Options struct {
+	caseIgnoreF bool
+	uniqueF     bool
+	reverseF    bool
+	numericF    bool
+	keyPos      int
+	outputFile  string
+}
 
 type flagsMap map[string]bool
 
@@ -20,24 +37,24 @@ type Data struct {
 	Lines []string
 }
 
-func (data *Data) SortData(col int, flags flagsMap) error {
-	var err error = nil
+func (data *Data) SortData(flags Options) error {
+	var err error
 
-	if flags["-k"] == false {
-		data.Lines = StringSort(data.Lines, flags["-f"])
+	if flags.keyPos == -1 {
+		data.Lines = StringSort(data.Lines, flags.caseIgnoreF)
 	} else {
-		if flags["-n"] == false {
-			data.Lines = ColSort(data.Lines, col, flags["-f"])
+		if flags.numericF == false {
+			data.Lines = ColSort(data.Lines, flags.keyPos, flags.caseIgnoreF)
 		} else {
-			if data.Lines, err = ColSortInt(data.Lines, col, flags["-f"]); err != nil {
+			if data.Lines, err = ColSortInt(data.Lines, flags.keyPos, flags.caseIgnoreF); err != nil {
 				return err
 			}
 		}
 	}
-	if flags["-r"] {
+	if flags.reverseF {
 		reverseStrings(data.Lines)
 	}
-	if flags["-u"] {
+	if flags.uniqueF {
 		data.Lines = RemoveDublicates(data.Lines)
 	}
 
@@ -55,11 +72,11 @@ func RemoveDublicates(lines []string) []string {
 }
 
 func ColSortInt(lines []string, col int, flagF bool) ([]string, error) {
-	var err error = nil
+	var err error
 	sort.Slice(lines, func(i, j int) bool {
 		var numbI, numbJ int
-		numbI, err = strconv.Atoi(strings.Split(lines[i], " ")[col])
-		numbJ, err = strconv.Atoi(strings.Split(lines[j], " ")[col])
+		numbI, err = strconv.Atoi(strings.Split(lines[i], " ")[col-1])
+		numbJ, err = strconv.Atoi(strings.Split(lines[j], " ")[col-1])
 		return numbI < numbJ
 	})
 	return lines, err
@@ -68,10 +85,10 @@ func ColSortInt(lines []string, col int, flagF bool) ([]string, error) {
 func ColSort(lines []string, col int, flagF bool) []string {
 	if flagF == true {
 		sort.Slice(lines, func(i, j int) bool {
-			return strings.ToUpper(strings.Split(lines[i], " ")[col]) < strings.ToUpper(strings.Split(lines[j], " ")[col])
+			return strings.ToUpper(strings.Split(lines[i], " ")[col-1]) < strings.ToUpper(strings.Split(lines[j], " ")[col-1])
 		})
 	} else {
-		sort.Slice(lines, func(i, j int) bool { return strings.Split(lines[i], " ")[col] < strings.Split(lines[j], " ")[col] })
+		sort.Slice(lines, func(i, j int) bool { return strings.Split(lines[i], " ")[col-1] < strings.Split(lines[j], " ")[col-1] })
 	}
 	return lines
 }
@@ -93,13 +110,6 @@ func reverseStrings(lines []string) {
 }
 
 func LinesCorrection(lines []string) []string {
-
-	// if lines[len(lines)-1] == "" {
-	// 	lines = lines[:len(lines)-1]
-	// }
-
-	spacesOnSide := regexp.MustCompile(`^[\s\p{Zs}]+|[\s\p{Zs}]+$`)
-	spacesInLine := regexp.MustCompile(`[\s\p{Zs}]{2,}`)
 
 	for i := 0; i < len(lines); i++ {
 		lines[i] = spacesOnSide.ReplaceAllString(lines[i], "")
@@ -130,117 +140,85 @@ func GetLines(data *Data, dataFile string) error {
 	return err
 }
 
-func OutToFile(lines []string, outFile string) {
+func OutToFile(lines []string, outFile string) error {
 	if _, err := os.Create(outFile); err != nil {
-		panic(err)
+		return err
 	}
 	if file, err := os.OpenFile(outFile, os.O_APPEND|os.O_WRONLY, 0600); err != nil {
-		panic(err)
+		return err
 	} else {
 		for i := 0; i < len(lines); i++ {
 			if _, err = file.WriteString(lines[i] + "\n"); err != nil {
-				panic(err)
-			}
-		}
-	}
-}
-
-func ReadArgs(flags flagsMap, args []string, outFile *string, dataFile *string, colNumb *int) error {
-	for index, value := range args {
-		if index > 0 && args[index-1] == "-o" {
-			continue
-		}
-		if index > 0 && args[index-1] == "-k" {
-			if number, err := strconv.Atoi(value); err == nil {
-				*colNumb = number - 1
-				continue
-			} else {
-				return fmt.Errorf("Col number is not digit")
-			}
-		}
-		switch value {
-		case "-f":
-			flags["-f"] = true
-		case "-u":
-			flags["-u"] = true
-		case "-r":
-			flags["-r"] = true
-		case "-n":
-			flags["-n"] = true
-		case "-k":
-			flags["-k"] = true
-		case "-o":
-			if flags["-o"] != true {
-				flags["-o"] = true
-				*outFile = args[index+1]
-			} else {
-				return fmt.Errorf("Dublicated of output file")
-			}
-		default:
-			if *dataFile == "" {
-				*dataFile = args[index]
-			} else {
-				return fmt.Errorf("Dublicated of input file")
+				return err
 			}
 		}
 	}
 	return nil
 }
 
-func Sort(args []string) ([]string, string, error) {
+func ReadArgs(flags *Options) ([]string, error) {
 
-	var outFile string
-	var dataFile string
-	var colNumb int
-	var data Data
+	flag.BoolVar(&flags.caseIgnoreF, "f", false, "a bool")
+	flag.BoolVar(&flags.uniqueF, "u", false, "a bool")
+	flag.BoolVar(&flags.reverseF, "r", false, "a bool")
+	flag.BoolVar(&flags.numericF, "n", false, "a bool")
+	flag.IntVar(&flags.keyPos, "k", -1, "a bool")
+	flag.StringVar(&flags.outputFile, "o", "", "a bool")
 
-	var flags flagsMap = map[string]bool{
-		"-f": false, // Игнорирвоать регистр букв
-		"-u": false, // Выводить только первое среди нескольких равных
-		"-r": false, // Сортировка по убыванию
-		"-n": false, // Сортировка чисел
-		"-k": false, // Сортировать по столбцу
-		"-o": false, // Вывод в файл
-	}
+	flag.Parse()
 
-	if err := ReadArgs(flags, args, &outFile, &dataFile, &colNumb); err != nil {
-		return data.Lines, outFile, err
-	}
-
-	if err := GetLines(&data, dataFile); err != nil {
-		return data.Lines, outFile, err
-	}
-
-	if err := data.SortData(colNumb, flags); err != nil {
-		return data.Lines, outFile, err
-	}
-
-	return data.Lines, outFile, nil
+	return flag.Args(), nil
 }
 
-func mainPanic() {
-	if r := recover(); r != nil {
-		fmt.Println(r)
+func ChoseOutInputFilesFile(data Data, outOption string, notFlags []string) (Data, error) {
+
+	if len(notFlags) != 1 {
+		return data, errors.New("Incorrect input")
 	}
+	if err := GetLines(&data, notFlags[0]); err != nil {
+		return data, err
+	}
+
+	return data, nil
+}
+
+func Sort(data Data, flags Options) ([]string, error) {
+
+	if err := data.SortData(flags); err != nil {
+		return data.Lines, err
+	}
+
+	return data.Lines, nil
 }
 
 func main() {
+	var err error
+	var flags Options
+	var data Data
+	var notFlags []string
 
-	defer mainPanic()
+	dat := os.Args[:1]
 
-	args := os.Args[1:]
-	if len(args) < 1 {
-		panic("Count of args is too low")
+	fmt.Println(dat)
+
+	if notFlags, err = ReadArgs(&flags); err != nil {
+		log.Fatal(err)
 	}
 
-	lines, outFile, err := Sort(args)
+	if data, err = ChoseOutInputFilesFile(data, flags.outputFile, notFlags); err != nil {
+		log.Fatal(err)
+	}
+
+	lines, err := Sort(data, flags)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
-	if outFile != "" {
-		OutToFile(lines, outFile)
+	if flags.outputFile != "" {
+		if err = OutToFile(lines, flags.outputFile); err != nil {
+			log.Fatal(err)
+		}
 	} else {
 		fmt.Println(lines)
 	}
