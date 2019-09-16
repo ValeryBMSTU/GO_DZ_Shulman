@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"strconv"
@@ -69,12 +70,10 @@ func ChoiseOperType(operator string, prevOperType *int) error {
 		}
 	}
 	if newPrevOperType == 0 {
-		err := errors.New("Unknown operator")
-		return err
+		return errors.New("Unknown operator")
 	}
 	if newPrevOperType == 6 {
-		err := errors.New("')' can not be in stack.")
-		return err
+		return errors.New("')' can not be in stack.")
 	}
 	*prevOperType = newPrevOperType
 	return nil
@@ -166,8 +165,7 @@ func AddOperator(oper string,
 		}
 	case "x":
 	case "?":
-		err := errors.New("Incorrect operator")
-		return operatorsStack, operandsStack, err
+		return operatorsStack, operandsStack, errors.New("Incorrect operator")
 
 	}
 	return operatorsStack, operandsStack, nil
@@ -220,7 +218,7 @@ func Calc(expression string) (float64, error) {
 		curentOperType = 6
 		if operatorsStack, operandsStack, err = AddOperator("<-", operatorsStack, operandsStack,
 			&curentOperType, &prevOperType); err != nil {
-			return 0.0, err
+			return 0, err
 		}
 	}
 
@@ -230,6 +228,9 @@ func Calc(expression string) (float64, error) {
 func main() {
 	args := os.Args[1]
 
-	result, err := Calc(args)
-	fmt.Println(result, err)
+	if result, err := Calc(args); err != nil {
+		log.Fatal(err)
+	} else {
+		fmt.Println(result, err)
+	}
 }

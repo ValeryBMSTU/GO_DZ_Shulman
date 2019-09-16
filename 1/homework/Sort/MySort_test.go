@@ -430,7 +430,14 @@ func TestSortData3(t *testing.T) {
 
 func TestSort1(t *testing.T) {
 	var data Data
-	if err := GetLines(&data, "testInput.txt"); err != nil {
+
+	file, err := os.OpenFile("testInput.txt", os.O_RDONLY, 0600)
+
+	if err != nil {
+		t.Errorf("Test Sort1 failed: %s", err)
+	}
+
+	if err := GetLines(&data, file); err != nil {
 		t.Errorf("Test Sort1 failed: %s", err)
 	}
 

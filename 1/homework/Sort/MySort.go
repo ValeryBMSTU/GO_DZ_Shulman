@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"regexp"
@@ -122,25 +123,20 @@ func LinesCorrection(lines []string) []string {
 	return lines
 }
 
-func GetLines(data *Data, dataFile string) error {
+func GetLines(data *Data, reader io.Reader) error {
 
 	var err error
-
-	file, err := os.OpenFile(dataFile, os.O_RDONLY, 0600)
-	if err != nil {
-		return err
-	}
 
 	buf := make([]byte, 64*1024)
 	var text string
 
-	n, err := file.Read(buf)
-	if err != nil {
-		return err
-	}
-
-	for i := 0; i < n; i++ {
-		text = text + string(buf[i])
+	if n, err := reader.Read(buf); err != io.EOF {
+		if err != nil {
+			return err
+		}
+		for i := 0; i < n; i++ {
+			text = text + string(buf[i])
+		}
 	}
 
 	data.Lines = strings.Split(string(text), "\n")
@@ -154,18 +150,16 @@ func GetLines(data *Data, dataFile string) error {
 	return err
 }
 
-func OutToFile(lines []string, outFile string) error {
-	if _, err := os.Create(outFile); err != nil {
-		return err
-	}
-	if file, err := os.OpenFile(outFile, os.O_APPEND|os.O_WRONLY, 0600); err != nil {
-		return err
-	} else {
-		for i := 0; i < len(lines); i++ {
-			if _, err = file.WriteString(lines[i] + "\n"); err != nil {
-				return err
-			}
+func OutToFile(lines []string, writer io.Writer) error {
+
+	for k := 0; k < len(lines); k++ {
+		var bytes = []byte{}
+		lines[k] = lines[k] + "\n"
+		for i := 0; i < len(lines[k]); i++ {
+			bytes = append(bytes, byte(lines[k][i]))
 		}
+
+		writer.Write(bytes)
 	}
 	return nil
 }
@@ -186,11 +180,20 @@ func ReadArgs(flags *Options) ([]string, error) {
 
 func ChoseOutInputFilesFile(data Data, outOption string, notFlags []string) (Data, error) {
 
-	if len(notFlags) != 1 {
+	if len(notFlags) == 0 {
+		if err := GetLines(&data, os.Stdin); err != nil {
+			return data, err
+		}
+	} else if len(notFlags) == 1 {
+		if file, err := os.OpenFile(notFlags[0], os.O_RDONLY, 0600); err != nil {
+			return data, err
+		} else {
+			if err := GetLines(&data, file); err != nil {
+				return data, err
+			}
+		}
+	} else {
 		return data, errors.New("Incorrect input")
-	}
-	if err := GetLines(&data, notFlags[0]); err != nil {
-		return data, err
 	}
 
 	return data, nil
@@ -230,8 +233,12 @@ func main() {
 	}
 
 	if flags.outputFile != "" {
-		if err = OutToFile(lines, flags.outputFile); err != nil {
+		if file, err := os.Create(flags.outputFile); err != nil {
 			log.Fatal(err)
+		} else {
+			if err = OutToFile(lines, file); err != nil {
+				log.Fatal(err)
+			}
 		}
 	} else {
 		fmt.Println(lines)
