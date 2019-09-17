@@ -1,0 +1,8 @@
+Apple perametr int pp 26
+BOOK perametr int pp 24
+Book perametr int pp 21
+Go perametr int gg 20
+Hauptbahnhof perametr int gg 22
+January perametr int gg 25
+January perametr int gg 25
+Napkin perametr int gg 29

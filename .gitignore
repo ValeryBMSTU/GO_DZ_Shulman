@@ -1,0 +1,4 @@
+*.txt
+.vscode/
+!testInput.txt
+!testOutput.txt
