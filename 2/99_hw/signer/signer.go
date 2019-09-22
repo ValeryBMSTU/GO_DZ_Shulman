@@ -10,6 +10,8 @@ import (
 
 // сюда писать код
 
+var mutex = &sync.Mutex{}
+
 func OnlyCrc(in, out chan interface{}) {
 	data := (<-in).(string)
 	result := DataSignerCrc32(data)
@@ -17,21 +19,19 @@ func OnlyCrc(in, out chan interface{}) {
 }
 
 func CrcAndM(in, out chan interface{}) {
-	mu := (<-in).(*sync.Mutex)
 	data := (<-in).(string)
 
-	mu.Lock()
+	mutex.Lock()
 	data = DataSignerMd5(data)
-	mu.Unlock()
+	mutex.Unlock()
 
 	result := DataSignerCrc32(data)
 
 	out <- result
 }
 
-func SingleHash(in, out chan interface{}) {
+func DoHash(in, out chan interface{}) {
 
-	mu := (<-in).(*sync.Mutex)
 	data := strconv.Itoa((<-in).(int))
 
 	OnlyCrcChIn := make(chan interface{})
@@ -45,7 +45,6 @@ func SingleHash(in, out chan interface{}) {
 
 	OnlyCrcChIn <- data
 
-	CrcAndMChIn <- mu
 	CrcAndMChIn <- data
 
 	OnlyCrcRes := (<-OnlyCrcChOut).(string)
@@ -60,7 +59,22 @@ func SingleHash(in, out chan interface{}) {
 	return
 }
 
-func MultiHash(in, out chan interface{}) {
+func SingleHash(in, out chan interface{}) {
+
+	for {
+		data := (<-in).(int)
+
+		dataCh := make(chan interface{})
+
+		go DoHash(dataCh, out)
+
+		dataCh <- data
+	}
+
+	return
+}
+
+func DoMultiHash(in, out chan interface{}) {
 	data := (<-in).(string)
 
 	result := ""
@@ -96,129 +110,95 @@ func MultiHash(in, out chan interface{}) {
 	return
 }
 
-func ReeadInput(inputWorker job, out chan interface{}) {
-
-	inputCh := make(chan interface{})
-	nilCh := make(chan interface{})
-
-	waitTime := time.Duration(800 * time.Millisecond)
-
-	go inputWorker(nilCh, inputCh)
-
-LOOP:
+func MultiHash(in, out chan interface{}) {
 	for {
-		select {
-		case data := <-inputCh:
-			out <- data
-		case <-time.After(waitTime):
-			close(out)
-			break LOOP
-		}
+		data := (<-in).(string)
+
+		dataCh := make(chan interface{})
+
+		go DoMultiHash(dataCh, out)
+
+		dataCh <- data
 	}
-
-}
-
-func WriteOutput(OutputWorker job, in, out chan interface{}) {
-	data := (<-in).(string)
-
-	outCh := make(chan interface{})
-	nilCh := make(chan interface{})
-
-	waitTime := time.Duration(1 * time.Millisecond)
-
-	go OutputWorker(outCh, nilCh)
-
-	outCh <- data
-LOOP:
-	for {
-		select {
-		case <-time.After(waitTime):
-			close(out)
-			break LOOP
-		}
-	}
-
+	return
 }
 
 func CombineResults(in, out chan interface{}) {
-	data := (<-in).([]string)
 
-	sort.Slice(data, func(i, j int) bool {
-		return data[i] < data[j]
+	waiter := (<-in).(*sync.WaitGroup)
+	defer waiter.Done()
+
+	sortedData := []string{}
+
+	data := <-in
+
+	sortedData = append(sortedData, data.(string))
+
+	sort.Slice(sortedData, func(i, j int) bool {
+		return sortedData[i] < sortedData[j]
 	})
+
+	waitTime := time.Duration(30 * time.Millisecond)
+
+LOOP:
+	for {
+		select {
+
+		case data := <-in:
+
+			sortedData = append(sortedData, data.(string))
+
+			sort.Slice(sortedData, func(i, j int) bool {
+				return sortedData[i] < sortedData[j]
+			})
+		case <-time.After(waitTime):
+			break LOOP
+		}
+	}
 
 	result := ""
 
-	for i := 0; i < len(data); i++ {
-		result = result + data[i]
-		if i < len(data)-1 {
+	for i := 0; i < len(sortedData); i++ {
+		result = result + sortedData[i]
+		if i < len(sortedData)-1 {
 			result = result + "_"
 		}
 	}
 
-	fmt.Println(data, "CombineResults result: ", result)
+	fmt.Println(sortedData, "CombineResults result: ", result)
 
 	out <- result
 }
 
 func ExecutePipeline(workers ...job) {
 
-	inputWorker := workers[0]
-	SingleHashWorker := workers[1]
-	MultiHashWorker := workers[2]
-	CombineResultsWorker := workers[3]
-	Outputworker := workers[4]
+	Ch1 := make(chan interface{})
+	Ch2 := make(chan interface{})
+	wg := &sync.WaitGroup{}
 
-	mu := &sync.Mutex{}
-
-	inputCh := make(chan interface{})
-	outCh := make(chan interface{})
-
-	dataCount := 0
-
-	CombineChIn := make(chan interface{})
-	CombineChOut := make(chan interface{})
-
-	MultiHashChOut := make(chan interface{})
-
-	go ReeadInput(inputWorker, inputCh)
-
-	for inputData := range inputCh {
-		data := inputData.(int)
-		dataCount++
-
-		SinglChIn := make(chan interface{})
-		SinglChOut := make(chan interface{})
-
-		go SingleHashWorker(SinglChIn, SinglChOut)
-		go MultiHashWorker(SinglChOut, MultiHashChOut)
-
-		SinglChIn <- mu
-		SinglChIn <- data
+	for i := 0; i < len(workers); i++ {
+		go workers[i](Ch1, Ch2)
+		if i == 3 {
+			wg.Add(1)
+			Ch1 <- wg
+		}
+		Ch1 = Ch2
+		Ch2 = make(chan interface{})
 	}
 
-	hashes := []string{}
+	if len(workers) == 5 {
+		wg.Wait()
 
-	for i := 0; i < dataCount; i++ {
-		hash := (<-MultiHashChOut).(string)
-		hashes = append(hashes, hash)
+		waitTime := time.Duration(1 * time.Millisecond)
+
+		<-time.After(waitTime)
+	} else {
+
+		waitTime := time.Duration(320 * time.Millisecond)
+
+		<-time.After(waitTime)
 	}
-
-	go CombineResultsWorker(CombineChIn, CombineChOut)
-
-	CombineChIn <- hashes
-
-	result := (<-CombineChOut).(string)
-
-	OkCh := make(chan interface{})
-
-	go WriteOutput(Outputworker, outCh, OkCh)
-
-	outCh <- result
-	for request := range OkCh {
-		fmt.Println(request)
-	}
-
+	return
 }
 
 func main() {
