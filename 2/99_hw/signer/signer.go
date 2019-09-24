@@ -5,12 +5,22 @@ import (
 	"sort"
 	"strconv"
 	"sync"
-	"time"
 )
 
 // сюда писать код
 
-var mutex = &sync.Mutex{}
+type MD5Hasher struct {
+	mu sync.Mutex
+}
+
+func (m *MD5Hasher) Hash(data string) string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	return DataSignerMd5(data)
+}
+
+var md5Hasher = MD5Hasher{}
 
 func OnlyCrc(in, out chan interface{}) {
 	data := (<-in).(string)
@@ -21,11 +31,7 @@ func OnlyCrc(in, out chan interface{}) {
 func CrcAndM(in, out chan interface{}) {
 	data := (<-in).(string)
 
-	mutex.Lock()
-	data = DataSignerMd5(data)
-	mutex.Unlock()
-
-	result := DataSignerCrc32(data)
+	result := DataSignerCrc32(md5Hasher.Hash(data))
 
 	out <- result
 }
@@ -60,17 +66,20 @@ func DoHash(in, out chan interface{}) {
 }
 
 func SingleHash(in, out chan interface{}) {
-
-	for {
-		data := (<-in).(int)
-
+	wg := &sync.WaitGroup{}
+	for val := range in {
+		data := val.(int)
 		dataCh := make(chan interface{})
 
-		go DoHash(dataCh, out)
+		wg.Add(1)
+		go func(waiter *sync.WaitGroup, in, out chan interface{}) {
+			DoHash(dataCh, out)
+			waiter.Done()
+		}(wg, dataCh, out)
 
 		dataCh <- data
 	}
-
+	wg.Wait()
 	return
 }
 
@@ -111,49 +120,35 @@ func DoMultiHash(in, out chan interface{}) {
 }
 
 func MultiHash(in, out chan interface{}) {
-	for {
-		data := (<-in).(string)
+	wg := &sync.WaitGroup{}
+	for val := range in {
+		data := val.(string)
 
 		dataCh := make(chan interface{})
 
-		go DoMultiHash(dataCh, out)
+		wg.Add(1)
+		go func(waiter *sync.WaitGroup, in, out chan interface{}) {
+			DoMultiHash(dataCh, out)
+			waiter.Done()
+		}(wg, dataCh, out)
 
 		dataCh <- data
 	}
+	wg.Wait()
 	return
 }
 
 func CombineResults(in, out chan interface{}) {
 
-	waiter := (<-in).(*sync.WaitGroup)
-	defer waiter.Done()
-
 	sortedData := []string{}
 
-	data := <-in
+	for data := range in {
 
-	sortedData = append(sortedData, data.(string))
+		sortedData = append(sortedData, data.(string))
 
-	sort.Slice(sortedData, func(i, j int) bool {
-		return sortedData[i] < sortedData[j]
-	})
-
-	waitTime := time.Duration(30 * time.Millisecond)
-
-LOOP:
-	for {
-		select {
-
-		case data := <-in:
-
-			sortedData = append(sortedData, data.(string))
-
-			sort.Slice(sortedData, func(i, j int) bool {
-				return sortedData[i] < sortedData[j]
-			})
-		case <-time.After(waitTime):
-			break LOOP
-		}
+		sort.Slice(sortedData, func(i, j int) bool {
+			return sortedData[i] < sortedData[j]
+		})
 	}
 
 	result := ""
@@ -177,27 +172,17 @@ func ExecutePipeline(workers ...job) {
 	wg := &sync.WaitGroup{}
 
 	for i := 0; i < len(workers); i++ {
-		go workers[i](Ch1, Ch2)
-		if i == 3 {
-			wg.Add(1)
-			Ch1 <- wg
-		}
+		wg.Add(1)
+		go func(waiter *sync.WaitGroup, i int, in, out chan interface{}) {
+			workers[i](in, out)
+			close(out)
+			waiter.Done()
+		}(wg, i, Ch1, Ch2)
 		Ch1 = Ch2
 		Ch2 = make(chan interface{})
 	}
 
-	if len(workers) == 5 {
-		wg.Wait()
-
-		waitTime := time.Duration(1 * time.Millisecond)
-
-		<-time.After(waitTime)
-	} else {
-
-		waitTime := time.Duration(320 * time.Millisecond)
-
-		<-time.After(waitTime)
-	}
+	wg.Wait()
 	return
 }
 
